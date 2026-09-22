@@ -1,0 +1,27 @@
+{
+  "name": "jev-chrome-extension",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Chrome extension that validates social media post authenticity using TypeSafe Jev",
+  "scripts": {
+    "dev": "vite",
+    "icons": "node scripts/generate-icons.mjs",
+    "prebuild": "node scripts/generate-icons.mjs",
+    "build": "tsc --noEmit && vite build",
+    "test": "tsx --test src/jev/verdict.test.ts"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@typesafe-ai/sdk": "^0.6.0"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.2.0",
+    "@types/chrome": "^0.1.11",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.5"
+  }
+}

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jev Authenticity Validator</title>
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <header class="header">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="#0F766E" />
+        <path
+          d="M9 16.5 13.2 21 23 11"
+          fill="none"
+          stroke="#F0FDFA"
+          stroke-width="2.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      <div>
+        <h1>Jev Auth</h1>
+        <p>Social post authenticity</p>
+      </div>
+    </header>
+
+    <main>
+      <form id="settings-form">
+        <div class="field">
+          <label for="api-key">TypeSafe API key</label>
+          <div class="key-row">
+            <input
+              id="api-key"
+              name="apiKey"
+              type="password"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="sk-…"
+            />
+            <button id="toggle-key" type="button" class="ghost" aria-pressed="false">
+              Show
+            </button>
+          </div>
+          <p id="key-status" class="status" role="status"></p>
+        </div>
+
+        <fieldset class="toggles">
+          <legend>Checks</legend>
+          <label class="toggle">
+            <input id="enabled" type="checkbox" />
+            <span>Enable on supported sites</span>
+          </label>
+          <label class="toggle">
+            <input id="check-ai" type="checkbox" />
+            <span>Flag likely AI-written text</span>
+          </label>
+          <label class="toggle">
+            <input id="check-misinfo" type="checkbox" />
+            <span>Flag potential misinformation</span>
+          </label>
+        </fieldset>
+
+        <button id="save" type="submit">Save settings</button>
+        <p id="form-status" class="status" role="status"></p>
+      </form>
+
+      <p class="hint">
+        Get a key at
+        <a href="https://console.typesafe.ai" target="_blank" rel="noreferrer"
+          >console.typesafe.ai</a
+        >.
+        Badges appear on public posts on X, Facebook, and LinkedIn.
+      </p>
+    </main>
+    <script type="module" src="./popup.ts"></script>
+  </body>
+</html>

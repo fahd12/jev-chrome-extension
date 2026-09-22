@@ -1,0 +1,162 @@
+.jev-auth-host {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-inline-start: 6px;
+  flex: 0 0 auto;
+}
+
+.jev-auth-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 20px;
+  max-width: 180px;
+  padding: 2px 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #334155;
+  font: 600 11px/1.2 "Segoe UI", system-ui, sans-serif;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: none;
+}
+
+.jev-auth-btn:focus-visible {
+  outline: 2px solid #0369a1;
+  outline-offset: 2px;
+}
+
+.jev-auth-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: currentColor;
+}
+
+.jev-auth-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jev-auth-btn[data-tone='green'] {
+  background: #ecfdf3;
+  border-color: #bbf7d0;
+  color: #146c2e;
+}
+
+.jev-auth-btn[data-tone='green'] .jev-auth-dot {
+  background: #0f7b3a;
+}
+
+.jev-auth-btn[data-tone='amber'] {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.jev-auth-btn[data-tone='amber'] .jev-auth-dot {
+  background: #b45309;
+}
+
+.jev-auth-btn[data-tone='red'] {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #9f1239;
+}
+
+.jev-auth-btn[data-tone='red'] .jev-auth-dot {
+  background: #b91c1c;
+}
+
+.jev-auth-btn[data-tone='muted'] {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+.jev-auth-btn[data-tone='muted'] .jev-auth-dot {
+  background: #94a3b8;
+}
+
+.jev-auth-btn[data-tone='neutral'] {
+  background: #f0f9ff;
+  border-color: #bae6fd;
+  color: #0c4a6e;
+}
+
+.jev-auth-btn[data-tone='neutral'] .jev-auth-dot {
+  background: #0369a1;
+}
+
+.jev-auth-btn[data-loading='true'] .jev-auth-dot {
+  animation: jev-auth-pulse 900ms ease-in-out infinite;
+}
+
+@keyframes jev-auth-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jev-auth-btn[data-loading='true'] .jev-auth-dot {
+    animation: none;
+  }
+}
+
+.jev-auth-tooltip {
+  position: fixed;
+  z-index: 2147483646;
+  min-width: 220px;
+  max-width: 280px;
+  padding: 10px 12px;
+  border: 1px solid #ccfbf1;
+  border-radius: 10px;
+  background: #f0fdfa;
+  color: #134e4a;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16);
+  font: 12px/1.45 "Segoe UI", system-ui, sans-serif;
+}
+
+.jev-auth-tooltip[hidden] {
+  display: none;
+}
+
+.jev-auth-tooltip h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 650;
+  color: #134e4a;
+}
+
+.jev-auth-tooltip dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+}
+
+.jev-auth-tooltip dt {
+  color: #0f766e;
+  font-weight: 600;
+}
+
+.jev-auth-tooltip dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.jev-auth-tooltip p {
+  margin: 8px 0 0;
+  color: #3f3f46;
+}
