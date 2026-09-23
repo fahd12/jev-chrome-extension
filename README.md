@@ -1,28 +1,28 @@
-# Social Media Authenticity Validator
+# X AI Slop Marker
 
-Chrome Manifest V3 extension that reads public post text on **X**, **Facebook**, and **LinkedIn**, then asks TypeSafe **Jev** two yes/no (Noul) questions:
+Chrome Manifest V3 extension for **X** (x.com). Each post that scrolls into view is checked. Posts judged to be AI slop get a red **AI slop** banner. Good posts are left unchanged.
 
-1. Is this text likely written by an LLM?
-2. Does it show misinformation cues (sensationalism, weak source cues, emotional manipulation)?
+## Detector modes
 
-Jev is not a generative model. It returns calibrated probabilities only. The extension never asks it to summarize or rewrite a post.
+The `DETECTOR` constant in `src/detector/mode.ts` selects the detector.
 
-## How Jev is used
+- **`'mock'`** (default) — no network calls. The result is random but fixed per post text: about 1 in 3 posts is slop, after a 300–1000 ms delay. No API key is needed.
+- **`'jev'`** — calls TypeSafe **Jev** from the service worker with one draft Noul question, `isSlop`. A post is marked when `isSlop` (noul) is greater than `0.8`.
 
-The background service worker builds a small `state` object (`platform`, `postText`, optional `author`) and calls `client.systemOne()` with:
+The API key is stored in `chrome.storage.local` and used only in the service worker. Content scripts never see the key.
 
-- `isAi` — Noul
-- `isFake` — Noul
-- `postType` — Choice (`news | opinion | personal | promotional | other`)
+## Rules
 
-Noul answers have **no `confidence` field**. Values near `0.5` mean the model is unsure. The badge is **Uncertain** when a Noul lands in a mid band, **Likely AI** when `isAi > 0.8`, and **Potential misinfo** when `isFake > 0.7`.
-
-The API key is stored in `chrome.storage.local` and used only in the service worker (`dangerouslyAllowBrowser: true` is required because a service worker is still a browser context). Content scripts never see the key.
+- Posts under 12 words are skipped and never marked.
+- Timeline, profile, and search pages are checked.
+- Thread detail pages (`/user/status/id`) are skipped.
+- A quoted post is checked separately from the outer post. Each gets its own banner.
+- No banner shows while a check is loading.
 
 ## Requirements
 
 - Node.js 20+
-- A TypeSafe API key from [console.typesafe.ai](https://console.typesafe.ai)
+- For Jev mode: a TypeSafe API key from [console.typesafe.ai](https://console.typesafe.ai)
 
 ## Build
 
@@ -39,36 +39,19 @@ npm run build
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
 3. Click **Load unpacked** and select the `dist/` folder
-4. Pin the extension, open the popup, paste your TypeSafe API key, and save
-5. Open a public feed on [x.com](https://x.com), [linkedin.com](https://www.linkedin.com/feed/), or [facebook.com](https://www.facebook.com)
-6. Scroll until a post of 12+ words is in view — a compact badge appears next to the timestamp or name
+4. Open the popup. Make sure **Enabled on x.com** is on. For Jev mode, paste your API key and save.
+5. Open [x.com](https://x.com) and scroll the timeline.
 
-If no key is saved, badges show **Set API key** and no TypeSafe call is made.
+## Manual verification checklist
 
-## Verification checklist
-
-- [ ] Popup saves the API key and remembers toggles after the popup is closed
-- [ ] With no key, badges say **Set API key**
-- [ ] Visible posts show **Checking…** then a green / amber / red label
-- [ ] Hover or click the badge to see exact Noul probabilities and the model id
-- [ ] Turning the extension off in the popup removes badges
-- [ ] Infinite scroll continues to badge new posts without flooding the API (viewport + cache + 2 concurrent calls)
-
-The Cursor browser cannot load an unpacked extension, so live feed checks have to be done in Chrome.
-
-## Project layout
-
-```
-src/background.ts          Service worker: queue, cache, TypeSafe calls
-src/jev/questions.ts       Jev state + Noul/Choice definitions
-src/jev/verdict.ts         Probability → badge mapping
-src/jev/client.ts          TypeSafeClient + fetch fallback
-src/content/main.ts        Observers and messaging
-src/content/platforms/     Resilient DOM extractors
-src/content/badge.ts       Injected badge + tooltip
-src/popup/                 API key and feature toggles
-```
+- [ ] About 1 in 3 long posts gets an **AI slop** banner
+- [ ] The same posts stay marked after you scroll away and back
+- [ ] Short posts (under 12 words) are never marked
+- [ ] Quoted posts get their own banner
+- [ ] Turning **Enabled on x.com** off removes the banners
+- [ ] Popup **Checked** and **Marked as AI slop** counts rise as you scroll
+- [ ] No banner shows while a post is loading
 
 ## Privacy
 
-The extension only reads **public post text** already on the page. It does not log in, scrape private messages, or send anything except the post text (and optional author name) to TypeSafe.
+The extension only reads public post text already on the page. In mock mode nothing leaves the browser. In Jev mode only the post text is sent to TypeSafe.

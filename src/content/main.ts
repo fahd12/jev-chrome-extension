@@ -1,131 +1,122 @@
-import { loadingVerdict } from '../jev/verdict';
-import { hashText, wordCount } from '../shared/hash';
+import { hashText, isLongEnough } from '../shared/hash';
 import { loadSettings, onSettingsChanged } from '../shared/settings';
-import type {
-  AnalyzePostRequest,
-  AnalyzePostResponse,
-  Platform,
-  Settings,
-} from '../shared/types';
+import type { CheckPostRequest, CheckPostResponse, Settings } from '../shared/types';
 import { DEFAULT_SETTINGS } from '../shared/types';
-import { mountBadge, removeAllBadges, type BadgeController } from './badge';
-import { adapterFor, detectPlatform } from './platforms';
+import { addBanner, hasBanner, removeAllBanners, removeBanner } from './banner';
+import { findPosts, isThreadPage, type ExtractedPost } from './x';
 
-/** Skip short reactions; ~20 words as specified, with a small social-feed floor. */
-const MIN_WORDS = 12;
-let processed = new WeakSet<HTMLElement>();
-const badges = new Map<string, BadgeController>();
-let postSeq = 0;
+const HASH_ATTR = 'data-slop-hash';
+
+/** Known results by text hash: true = slop, false = not slop. */
+const results = new Map<string, boolean>();
+const inFlight = new Set<string>();
+let texts = new WeakMap<HTMLElement, string>();
 let settings: Settings = DEFAULT_SETTINGS;
 let observer: MutationObserver | null = null;
 let visibility: IntersectionObserver | null = null;
+let scanQueued = false;
 
-function canAnalyze(next: Settings): boolean {
-  return next.enabled && (next.checkAi || next.checkMisinfo);
-}
-
-async function analyzePost(
-  platform: Platform,
-  postId: string,
-  text: string,
-  author?: string,
-): Promise<AnalyzePostResponse> {
-  const request: AnalyzePostRequest = {
-    type: 'ANALYZE_POST',
-    postId,
-    platform,
-    text,
-    author,
-  };
+async function checkPost(text: string): Promise<CheckPostResponse> {
+  const request: CheckPostRequest = { type: 'CHECK_POST', text };
   return chrome.runtime.sendMessage(request);
 }
 
-function watchPost(
-  platform: Platform,
-  root: HTMLElement,
-  text: string,
-  author: string | undefined,
-  badge: BadgeController,
-): void {
-  visibility?.observe(root);
-  root.dataset.jevAuthWatch = postIdFor(root, text);
-  // Store payload on the element so the intersection callback can send it.
-  root.dataset.jevAuthText = text;
-  if (author) {
-    root.dataset.jevAuthAuthor = author;
+function applyResult(hash: string): void {
+  if (results.get(hash) !== true) {
+    return;
   }
-  root.dataset.jevAuthPlatform = platform;
-  badges.set(root.dataset.jevAuthWatch, badge);
+  document.querySelectorAll<HTMLElement>(`[${HASH_ATTR}="${hash}"]`).forEach(addBanner);
 }
 
-function postIdFor(root: HTMLElement, text: string): string {
-  if (root.dataset.jevAuthWatch) {
-    return root.dataset.jevAuthWatch;
+function requestCheck(hash: string, text: string): void {
+  if (inFlight.has(hash) || results.has(hash)) {
+    return;
   }
-  postSeq += 1;
-  return `${hashText(text)}-${postSeq}`;
+  inFlight.add(hash);
+  checkPost(text)
+    .then((response) => {
+      if (response.error) {
+        console.warn('[AI slop]', response.error);
+        return;
+      }
+      results.set(hash, response.slop);
+      if (settings.enabled) {
+        applyResult(hash);
+      }
+    })
+    .catch((error: unknown) => {
+      console.warn('[AI slop]', error instanceof Error ? error.message : error);
+    })
+    .finally(() => {
+      inFlight.delete(hash);
+    });
 }
 
-function scan(platform: Platform): void {
-  if (!canAnalyze(settings)) {
+function onVisible(entries: IntersectionObserverEntry[]): void {
+  entries.forEach((entry) => {
+    if (!entry.isIntersecting) {
+      return;
+    }
+    const root = entry.target as HTMLElement;
+    visibility?.unobserve(root);
+    const hash = root.getAttribute(HASH_ATTR);
+    const text = texts.get(root);
+    if (hash && text) {
+      requestCheck(hash, text);
+    }
+  });
+}
+
+function track(post: ExtractedPost): void {
+  if (!isLongEnough(post.text)) {
+    return;
+  }
+  const { root, text } = post;
+  const hash = hashText(text);
+  const stored = root.getAttribute(HASH_ATTR);
+
+  if (stored === hash) {
+    if (results.get(hash) === true && !hasBanner(root)) {
+      addBanner(root);
+    }
     return;
   }
 
-  const adapter = adapterFor(platform);
-  for (const post of adapter.findPosts()) {
-    if (processed.has(post.root)) {
-      continue;
-    }
-    if (wordCount(post.text) < MIN_WORDS) {
-      continue;
-    }
+  if (stored) {
+    removeBanner(root);
+  }
+  root.setAttribute(HASH_ATTR, hash);
+  texts.set(root, text);
 
-    processed.add(post.root);
-    const badge = mountBadge(post.anchor);
-    badge.setVerdict(loadingVerdict());
-    watchPost(platform, post.root, post.text, post.author, badge);
+  if (results.has(hash)) {
+    applyResult(hash);
+  } else {
+    visibility?.observe(root);
   }
 }
 
-function startObservers(platform: Platform): void {
-  visibility?.disconnect();
-  observer?.disconnect();
+function scan(): void {
+  scanQueued = false;
+  if (!settings.enabled || isThreadPage(location.pathname)) {
+    return;
+  }
+  findPosts().forEach(track);
+}
 
-  visibility = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) {
-          return;
-        }
-        const root = entry.target as HTMLElement;
-        const postId = root.dataset.jevAuthWatch;
-        const text = root.dataset.jevAuthText;
-        if (!postId || !text || root.dataset.jevAuthSent === '1') {
-          return;
-        }
-        root.dataset.jevAuthSent = '1';
-        const badge = badges.get(postId);
-        analyzePost(platform, postId, text, root.dataset.jevAuthAuthor)
-          .then((response) => {
-            badge?.setVerdict(response.verdict);
-          })
-          .catch((error: unknown) => {
-            badge?.setVerdict({
-              kind: 'error',
-              label: 'Unavailable',
-              tone: 'neutral',
-              error: error instanceof Error ? error.message : 'Analysis failed.',
-            });
-          });
-      });
-    },
-    { root: null, threshold: 0.25 },
-  );
+/** Collapse bursts of mutations into one scan per frame. */
+function scheduleScan(): void {
+  if (scanQueued) {
+    return;
+  }
+  scanQueued = true;
+  requestAnimationFrame(scan);
+}
 
-  observer = new MutationObserver(() => {
-    scan(platform);
-  });
+function start(): void {
+  visibility = new IntersectionObserver(onVisible, { root: null, threshold: 0.25 });
+  observer = new MutationObserver(scheduleScan);
   observer.observe(document.documentElement, { childList: true, subtree: true });
+  scan();
 }
 
 function stop(): void {
@@ -133,36 +124,23 @@ function stop(): void {
   visibility?.disconnect();
   observer = null;
   visibility = null;
-  document.querySelectorAll<HTMLElement>('[data-jev-auth-watch]').forEach((el) => {
-    delete el.dataset.jevAuthWatch;
-    delete el.dataset.jevAuthText;
-    delete el.dataset.jevAuthAuthor;
-    delete el.dataset.jevAuthPlatform;
-    delete el.dataset.jevAuthSent;
-  });
-  removeAllBadges();
-  badges.clear();
-  processed = new WeakSet<HTMLElement>();
+  scanQueued = false;
+  document.querySelectorAll(`[${HASH_ATTR}]`).forEach((el) => el.removeAttribute(HASH_ATTR));
+  removeAllBanners();
+  texts = new WeakMap<HTMLElement, string>();
 }
 
 async function boot(): Promise<void> {
-  const platform = detectPlatform();
-  if (!platform) {
-    return;
-  }
-
   settings = await loadSettings();
-  if (canAnalyze(settings)) {
-    startObservers(platform);
-    scan(platform);
+  if (settings.enabled) {
+    start();
   }
 
   onSettingsChanged((next) => {
     settings = next;
     stop();
-    if (canAnalyze(next)) {
-      startObservers(platform);
-      scan(platform);
+    if (next.enabled) {
+      start();
     }
   });
 }

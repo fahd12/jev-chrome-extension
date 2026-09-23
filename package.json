@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Chrome extension that validates social media post authenticity using TypeSafe Jev",
+  "description": "Chrome extension that marks AI slop posts on X using TypeSafe Jev",
   "scripts": {
     "dev": "vite",
     "icons": "node scripts/generate-icons.mjs",
     "prebuild": "node scripts/generate-icons.mjs",
     "build": "tsc --noEmit && vite build",
-    "test": "tsx --test src/jev/verdict.test.ts"
+    "test": "tsx --test \"src/**/*.test.ts\""
   },
   "engines": {
     "node": ">=20"
@@ -20,6 +20,7 @@
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.2.0",
     "@types/chrome": "^0.1.11",
+    "linkedom": "^0.18.13",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
     "vite": "^7.1.5"

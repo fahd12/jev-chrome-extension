@@ -1,21 +1,17 @@
 import { defineManifest } from '@crxjs/vite-plugin';
 import pkg from './package.json' with { type: 'json' };
 
-const socialMatches = [
-  '*://twitter.com/*',
-  '*://*.twitter.com/*',
+const xMatches = [
   '*://x.com/*',
   '*://*.x.com/*',
-  '*://facebook.com/*',
-  '*://*.facebook.com/*',
-  '*://linkedin.com/*',
-  '*://*.linkedin.com/*',
+  '*://twitter.com/*',
+  '*://*.twitter.com/*',
 ];
 
 export default defineManifest({
   manifest_version: 3,
-  name: 'Social Media Authenticity Validator',
-  short_name: 'Jev Auth',
+  name: 'X AI Slop Marker',
+  short_name: 'AI Slop',
   description: pkg.description,
   version: pkg.version,
   icons: {
@@ -24,7 +20,7 @@ export default defineManifest({
     128: 'icons/icon128.png',
   },
   action: {
-    default_title: 'Jev Authenticity Validator',
+    default_title: 'X AI Slop Marker',
     default_popup: 'src/popup/index.html',
     default_icon: {
       16: 'icons/icon16.png',
@@ -36,11 +32,11 @@ export default defineManifest({
     service_worker: 'src/background.ts',
     type: 'module',
   },
-  permissions: ['storage', 'activeTab', 'scripting'],
-  host_permissions: [...socialMatches, 'https://api.typesafe.ai/*'],
+  permissions: ['storage'],
+  host_permissions: [...xMatches, 'https://api.typesafe.ai/*'],
   content_scripts: [
     {
-      matches: socialMatches,
+      matches: xMatches,
       js: ['src/content/main.ts'],
       run_at: 'document_idle',
     },

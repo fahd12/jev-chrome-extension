@@ -3,32 +3,65 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Jev Authenticity Validator</title>
+    <title>X AI Slop Marker</title>
     <link rel="stylesheet" href="./popup.css" />
   </head>
   <body>
     <header class="header">
       <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
-        <rect width="32" height="32" rx="8" fill="#0F766E" />
+        <rect width="32" height="32" rx="9" fill="#DC2626" />
         <path
-          d="M9 16.5 13.2 21 23 11"
+          d="M16 8 7 24h18L16 8Z"
           fill="none"
-          stroke="#F0FDFA"
-          stroke-width="2.6"
-          stroke-linecap="round"
+          stroke="#FFFFFF"
+          stroke-width="2.4"
           stroke-linejoin="round"
         />
+        <path d="M16 14.5v4" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" />
+        <circle cx="16" cy="21.4" r="1.3" fill="#FFFFFF" />
       </svg>
-      <div>
-        <h1>Jev Auth</h1>
-        <p>Social post authenticity</p>
+      <div class="title">
+        <h1>AI Slop Marker</h1>
+        <p>Flags AI slop posts on X</p>
       </div>
+      <span id="mode-pill" class="pill" title="Detector mode"></span>
     </header>
 
     <main>
-      <form id="settings-form">
-        <div class="field">
-          <label for="api-key">TypeSafe API key</label>
+      <label class="switch-row" for="enabled">
+        <span>
+          <span class="switch-title">Mark posts on x.com</span>
+          <span id="enabled-status" class="switch-sub"></span>
+        </span>
+        <input id="enabled" class="switch" type="checkbox" role="switch" />
+      </label>
+
+      <section class="stats" aria-labelledby="stats-title">
+        <h2 id="stats-title">This session</h2>
+        <div class="tiles">
+          <div class="tile">
+            <strong id="stat-checked">0</strong>
+            <span>Checked</span>
+          </div>
+          <div class="tile tile-slop">
+            <strong id="stat-marked">0</strong>
+            <span>AI slop</span>
+          </div>
+          <div class="tile">
+            <strong id="stat-rate">–</strong>
+            <span>Slop rate</span>
+          </div>
+        </div>
+      </section>
+
+      <p id="mode-note" class="note"></p>
+
+      <details id="key-section" class="key-section">
+        <summary>
+          <span>TypeSafe API key</span>
+          <span id="key-badge" class="key-badge"></span>
+        </summary>
+        <form id="settings-form">
           <div class="key-row">
             <input
               id="api-key"
@@ -37,41 +70,23 @@
               autocomplete="off"
               spellcheck="false"
               placeholder="sk-…"
+              aria-label="TypeSafe API key"
             />
             <button id="toggle-key" type="button" class="ghost" aria-pressed="false">
               Show
             </button>
           </div>
-          <p id="key-status" class="status" role="status"></p>
-        </div>
+          <button id="save" type="submit">Save key</button>
+          <p class="hint">
+            Get a key at
+            <a href="https://console.typesafe.ai" target="_blank" rel="noreferrer"
+              >console.typesafe.ai</a
+            >. The key stays on this device.
+          </p>
+        </form>
+      </details>
 
-        <fieldset class="toggles">
-          <legend>Checks</legend>
-          <label class="toggle">
-            <input id="enabled" type="checkbox" />
-            <span>Enable on supported sites</span>
-          </label>
-          <label class="toggle">
-            <input id="check-ai" type="checkbox" />
-            <span>Flag likely AI-written text</span>
-          </label>
-          <label class="toggle">
-            <input id="check-misinfo" type="checkbox" />
-            <span>Flag potential misinformation</span>
-          </label>
-        </fieldset>
-
-        <button id="save" type="submit">Save settings</button>
-        <p id="form-status" class="status" role="status"></p>
-      </form>
-
-      <p class="hint">
-        Get a key at
-        <a href="https://console.typesafe.ai" target="_blank" rel="noreferrer"
-          >console.typesafe.ai</a
-        >.
-        Badges appear on public posts on X, Facebook, and LinkedIn.
-      </p>
+      <p id="form-status" class="status" role="status"></p>
     </main>
     <script type="module" src="./popup.ts"></script>
   </body>

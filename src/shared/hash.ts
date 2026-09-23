@@ -15,3 +15,10 @@ export function wordCount(text: string): number {
     .split(/\s+/)
     .filter(Boolean).length;
 }
+
+/** Very short posts give an unreliable AI signal, so they are not checked. */
+export const MIN_WORDS = 12;
+
+export function isLongEnough(text: string): boolean {
+  return wordCount(text) >= MIN_WORDS;
+}

@@ -5,15 +5,11 @@ import {
   TypeSafeClient,
 } from '@typesafe-ai/sdk';
 import { buildQuestions, buildState, JEV_MODEL } from './questions';
-import type { Platform } from '../shared/types';
-import type { JevScores } from './verdict';
 
 type SystemOneResponse = {
   model?: string;
   answers: {
-    isAi: { noul: number };
-    isFake: { noul: number };
-    postType?: { choice?: string; confidence?: number };
+    isSlop: { noul: number };
   };
 };
 
@@ -36,14 +32,8 @@ function retryAfterMs(error: unknown): number {
   return 1500;
 }
 
-function toScores(response: SystemOneResponse): JevScores {
-  return {
-    isAi: response.answers.isAi.noul,
-    isFake: response.answers.isFake.noul,
-    postType: response.answers.postType?.choice,
-    postTypeConfidence: response.answers.postType?.confidence,
-    model: response.model,
-  };
+function toNoul(response: SystemOneResponse): number {
+  return response.answers.isSlop.noul;
 }
 
 /**
@@ -61,7 +51,7 @@ function createSdkClient(apiKey: string): TypeSafeClient {
 
 /**
  * Fetch fallback if the SDK HTTP client cannot run in the worker.
- * Question objects from `noul()` / `choice()` are sent as-is.
+ * Question objects from `noul()` are sent as-is.
  */
 async function systemOneFetch(
   apiKey: string,
@@ -133,17 +123,15 @@ export function describeJevError(error: unknown): { kind: 'auth' | 'other'; mess
   return { kind: 'other', message: 'Unexpected TypeSafe error.' };
 }
 
-export async function evaluatePost(
-  apiKey: string,
-  input: { platform: Platform; text: string; author?: string },
-): Promise<JevScores> {
-  const state = buildState(input);
+/** Returns the isSlop Noul in [0, 1] for the post text. */
+export async function evaluateSlop(apiKey: string, text: string): Promise<number> {
+  const state = buildState(text);
   let lastError: unknown;
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       try {
-        return toScores(await systemOneSdk(apiKey, state));
+        return toNoul(await systemOneSdk(apiKey, state));
       } catch (sdkError) {
         // Constructor / Node-only failures fall through to raw fetch.
         if (
@@ -153,7 +141,7 @@ export async function evaluatePost(
         ) {
           throw sdkError;
         }
-        return toScores(await systemOneFetch(apiKey, state));
+        return toNoul(await systemOneFetch(apiKey, state));
       }
     } catch (error) {
       lastError = error;
