@@ -48,6 +48,7 @@ npm run build
 - [ ] The same posts stay marked after you scroll away and back
 - [ ] Short posts (under 12 words) are never marked
 - [ ] Quoted posts get their own banner
+- [ ] A banner does not move or resize the post or its quoted post
 - [ ] Turning **Enabled on x.com** off removes the banners
 - [ ] Popup **Checked** and **Marked as AI slop** counts rise as you scroll
 - [ ] No banner shows while a post is loading

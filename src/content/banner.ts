@@ -33,7 +33,8 @@ function createHost(root: HTMLElement): HTMLElement {
   banner.className = 'slop-banner';
   banner.setAttribute('role', 'note');
   banner.setAttribute('aria-label', 'AI slop: likely low-effort AI-generated text');
-  banner.innerHTML = `${WARNING_ICON}<span class="label">AI slop</span><span class="reason">Likely low-effort AI-generated text</span>`;
+  banner.title = 'Likely low-effort AI-generated text';
+  banner.innerHTML = `${WARNING_ICON}<span class="label">AI slop</span>`;
   shadow.appendChild(banner);
   return host;
 }
