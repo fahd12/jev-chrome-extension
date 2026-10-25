@@ -1,4 +1,4 @@
-import { DETECTOR } from '../detector/mode';
+import { resolveMode, type DetectorMode } from '../detector';
 import { loadSettings, saveSettings } from '../shared/settings';
 import { onStatsChanged, readStats } from '../shared/stats';
 import type { Settings, SlopStats } from '../shared/types';
@@ -17,6 +17,8 @@ const modeNote = document.querySelector<HTMLElement>('#mode-note');
 const statChecked = document.querySelector<HTMLElement>('#stat-checked');
 const statMarked = document.querySelector<HTMLElement>('#stat-marked');
 const statRate = document.querySelector<HTMLElement>('#stat-rate');
+const thresholdInput = document.querySelector<HTMLInputElement>('#threshold');
+const thresholdValue = document.querySelector<HTMLElement>('#threshold-value');
 
 let savedSettings: Settings | null = null;
 
@@ -32,15 +34,15 @@ function setStatus(el: HTMLElement | null, message: string, tone?: 'ok' | 'error
   }
 }
 
-function applyMode(): void {
+function applyMode(mode: DetectorMode): void {
   if (modePill) {
-    modePill.dataset.mode = DETECTOR;
-    modePill.textContent = DETECTOR === 'mock' ? 'Mock mode' : 'Jev';
+    modePill.dataset.mode = mode;
+    modePill.textContent = mode === 'mock' ? 'Mock mode' : 'Jev';
   }
   if (modeNote) {
     modeNote.textContent =
-      DETECTOR === 'mock'
-        ? 'Mock mode: results are random but fixed per post. No TypeSafe calls are made.'
+      mode === 'mock'
+        ? 'No API key — using mock mode. Results are random but fixed per post.'
         : 'Posts are checked by TypeSafe Jev.';
   }
 }
@@ -56,6 +58,16 @@ function applyEnabled(enabled: boolean): void {
   }
 }
 
+function applyThreshold(threshold: number): void {
+  const pct = Math.round(threshold * 100);
+  if (thresholdInput) {
+    thresholdInput.value = String(pct);
+  }
+  if (thresholdValue) {
+    thresholdValue.textContent = `${pct}%`;
+  }
+}
+
 function applySettings(settings: Settings): void {
   savedSettings = settings;
   const hasKey = Boolean(settings.apiKey.trim());
@@ -63,9 +75,10 @@ function applySettings(settings: Settings): void {
     apiKeyInput.value = settings.apiKey;
   }
   applyEnabled(settings.enabled);
+  applyThreshold(settings.threshold);
+  applyMode(resolveMode(settings));
   setStatus(keyBadge, hasKey ? 'Saved' : 'Not set', hasKey ? 'ok' : undefined);
-  // Jev mode cannot work without a key, so show the field at once.
-  if (keySection && DETECTOR === 'jev' && !hasKey) {
+  if (keySection && !hasKey) {
     keySection.open = true;
   }
 }
@@ -84,15 +97,42 @@ function applyStats(stats: SlopStats): void {
 }
 
 function readSettings(): Settings {
+  const threshold = thresholdInput ? Number(thresholdInput.value) / 100 : 0.8;
   return {
     apiKey: apiKeyInput?.value.trim() ?? '',
     enabled: Boolean(enabledInput?.checked),
+    threshold: Math.max(0.5, Math.min(0.95, threshold)),
   };
 }
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Could not save settings.';
 }
+
+// ── Slider live preview ─────────────────────────────────────────────────
+
+thresholdInput?.addEventListener('input', () => {
+  const pct = thresholdInput.value;
+  if (thresholdValue) {
+    thresholdValue.textContent = `${pct}%`;
+  }
+});
+
+// Save threshold when the user releases the slider (not on every pixel).
+thresholdInput?.addEventListener('change', async () => {
+  try {
+    const base = savedSettings ?? (await loadSettings());
+    const threshold = Number(thresholdInput.value) / 100;
+    const next: Settings = { ...base, threshold: Math.max(0.5, Math.min(0.95, threshold)) };
+    await saveSettings(next);
+    savedSettings = next;
+    setStatus(formStatus, '');
+  } catch (error) {
+    setStatus(formStatus, errorMessage(error), 'error');
+  }
+});
+
+// ── Show/hide key ───────────────────────────────────────────────────────
 
 toggleKey?.addEventListener('click', () => {
   if (!apiKeyInput) {
@@ -104,7 +144,8 @@ toggleKey?.addEventListener('click', () => {
   toggleKey.setAttribute('aria-pressed', String(show));
 });
 
-// The toggle saves at once. It keeps the saved key, not an unsaved draft in the field.
+// ── Enabled toggle (saves immediately) ──────────────────────────────────
+
 enabledInput?.addEventListener('change', async () => {
   const enabled = enabledInput.checked;
   try {
@@ -119,6 +160,8 @@ enabledInput?.addEventListener('change', async () => {
     setStatus(formStatus, errorMessage(error), 'error');
   }
 });
+
+// ── API key form ────────────────────────────────────────────────────────
 
 form?.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -140,7 +183,8 @@ form?.addEventListener('submit', async (event) => {
   }
 });
 
-applyMode();
+// ── Init ────────────────────────────────────────────────────────────────
+
 void loadSettings().then(applySettings);
 void readStats().then(applyStats);
 onStatsChanged(applyStats);

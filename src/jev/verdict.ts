@@ -1,6 +1,8 @@
-/** A post is marked as slop only when the isSlop Noul is above this. */
-export const SLOP_THRESHOLD = 0.8;
+import { DEFAULT_SETTINGS } from '../shared/types';
 
-export function isSlopScore(noul: number): boolean {
-  return noul > SLOP_THRESHOLD;
+/** Fallback threshold when none is provided. */
+export const SLOP_THRESHOLD = DEFAULT_SETTINGS.threshold;
+
+export function isSlopScore(noul: number, threshold: number = SLOP_THRESHOLD): boolean {
+  return noul > threshold;
 }

@@ -3,8 +3,8 @@ import { getDetector } from './detector';
 import { describeJevError } from './jev/client';
 import { hashText } from './shared/hash';
 import { loadSettings } from './shared/settings';
-import { recordCheck } from './shared/stats';
-import type { CheckPostResponse, ExtensionMessage } from './shared/types';
+import { onStatsChanged, readStats, recordCheck } from './shared/stats';
+import type { CheckPostResponse, ExtensionMessage, SlopStats } from './shared/types';
 
 const MAX_CONCURRENT = 2;
 
@@ -26,6 +26,24 @@ function releaseSlot(): void {
   const next = waiters.shift();
   next?.();
 }
+
+// ── #11: Toolbar badge count ────────────────────────────────────────────
+
+function updateBadge(stats: SlopStats): void {
+  const count = stats.marked;
+  const text = count > 0 ? String(count) : '';
+  chrome.action.setBadgeText({ text }).catch(() => {});
+  if (count > 0) {
+    chrome.action.setBadgeBackgroundColor({ color: '#DC2626' }).catch(() => {});
+    chrome.action.setBadgeTextColor({ color: '#FFFFFF' }).catch(() => {});
+  }
+}
+
+// Sync badge on startup and whenever stats change.
+void readStats().then(updateBadge);
+onStatsChanged(updateBadge);
+
+// ── Post check ──────────────────────────────────────────────────────────
 
 async function checkPost(text: string): Promise<CheckPostResponse> {
   const settings = await loadSettings();

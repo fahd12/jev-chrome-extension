@@ -56,6 +56,28 @@
 
       <p id="mode-note" class="note"></p>
 
+      <div class="threshold-section">
+        <label for="threshold">
+          <span class="threshold-title">Sensitivity</span>
+          <span class="threshold-meta">
+            Flag posts above <strong id="threshold-value">80%</strong>
+          </span>
+        </label>
+        <input
+          id="threshold"
+          type="range"
+          min="50"
+          max="95"
+          step="5"
+          value="80"
+          aria-label="Slop detection threshold"
+        />
+        <div class="threshold-labels">
+          <span>Aggressive</span>
+          <span>Conservative</span>
+        </div>
+      </div>
+
       <details id="key-section" class="key-section">
         <summary>
           <span>TypeSafe API key</span>

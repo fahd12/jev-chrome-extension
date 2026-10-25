@@ -2,13 +2,14 @@ import { evaluateSlop } from '../jev/client';
 import { isSlopScore } from '../jev/verdict';
 import type { Settings } from '../shared/types';
 import { createMockDetector } from './mock';
-import { DETECTOR } from './mode';
+import { resolveMode } from './mode';
 import type { Detector } from './types';
 
-export { DETECTOR };
+export { resolveMode } from './mode';
+export type { DetectorMode } from './mode';
 
 export function getDetector(settings: Settings): Detector {
-  if (DETECTOR === 'mock') {
+  if (resolveMode(settings) === 'mock') {
     return createMockDetector();
   }
 
@@ -19,5 +20,5 @@ export function getDetector(settings: Settings): Detector {
     };
   }
 
-  return (text) => evaluateSlop(apiKey, text).then(isSlopScore);
+  return (text) => evaluateSlop(apiKey, text).then((noul) => isSlopScore(noul, settings.threshold));
 }
